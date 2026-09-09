@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orçamento PDV Legal</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<!-- Bibliotecas para PDF (Atualizadas e Tratadas) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  // Garante que o AutoTable consiga se vincular globalmente ao jsPDF
+  if (window.jspdf && window.jspdf.jsPDF) {
+      window.jsPDF = window.jspdf.jsPDF;
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  :root{
+    --bg:#F5F7FB;
+    --surface:#FFFFFF;
+    --surface-2:#EDF0F8;
+    --surface-3:#E4E8F3;
+    --border:#DCE2F0;
+    --border-strong:#C3CBE0;
+    --text:#191E2E;
+    --text-muted:#5B6478;
+    --text-faint:#8891A6;
+    --accent:#2954E5;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#E8EDFC;
+    --accent-2:#0EA5A0;
+    --accent-2-soft:#E1F7F5;
+    --success:#1F9D55;
+    --success-soft:#E7F6EC;
+    --warning:#B45309;
+    --warning-soft:#FDF1DF;
+    --danger:#DC2626;
+    --danger-soft:#FCE8E8;
+    --shadow-sm: 0 1px 2px rgba(25,30,46,0.06);
+    --shadow-md: 0 6px 20px -6px rgba(25,30,46,0.16);
+    --shadow-lg: 0 16px 40px -12px rgba(25,30,46,0.24);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E121C;
+      --surface:#161B29;
+      --surface-2:#1D2334;
+      --surface-3:#242B40;
+      --border:#2A3247;
+      --border-strong:#3A4360;
+      --text:#E7EAF3;
+      --text-muted:#9CA5BC;
+      --text-faint:#6E7791;
+      --accent:#6C8CFF;
+      --accent-ink:#0E121C;
+      --accent-soft:#1E2A4D;
+      --accent-2:#33D6C9;
+      --accent-2-soft:#123330;
+      --success:#3ECB79;
+      --success-soft:#123322;
+      --warning:#F0A93D;
+      --warning-soft:#3A2A10;
+      --danger:#F0605C;
+      --danger-soft:#3A1616;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+      --shadow-md: 0 6px 20px -6px rgba(0,0,0,0.5);
+      --shadow-lg: 0 16px 40px -12px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E121C;
+    --surface:#161B29;
+    --surface-2:#1D2334;
+    --surface-3:#242B40;
+    --border:#2A3247;
+    --border-strong:#3A4360;
+    --text:#E7EAF3;
+    --text-muted:#9CA5BC;
+    --text-faint:#6E7791;
+    --accent:#6C8CFF;
+    --accent-ink:#0E121C;
+    --accent-soft:#1E2A4D;
+    --accent-2:#33D6C9;
+    --accent-2-soft:#123330;
+    --success:#3ECB79;
+    --success-soft:#123322;
+    --warning:#F0A93D;
+    --warning-soft:#3A2A10;
+    --danger:#F0605C;
+    --danger-soft:#3A1616;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+    --shadow-md: 0 6px 20px -6px rgba(0,0,0,0.5);
+    --shadow-lg: 0 16px 40px -12px rgba(0,0,0,0.6);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ color-scheme: light dark; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', system-ui, -apple-system, Segoe UI, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Manrope', system-ui, sans-serif; text-wrap:balance; margin:0; }
+  .mono, input[type="number"], .price-value, .summary-value, .total-price{
+    font-family:'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shell{ max-width:1080px; margin:0 auto; padding:28px 24px 140px; }
+
+  /* Header */
+  .app-header{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:16px; flex-wrap:wrap; margin-bottom:22px; padding-bottom:18px;
+    border-bottom:1px solid var(--border);
+  }
+  .brand-mark{ font-size:1.7em; font-weight:800; letter-spacing:-0.02em; color:var(--text); }
+  .brand-mark-accent{ color:var(--accent); }
+  .brand-sub{ display:block; font-size:0.82em; color:var(--text-muted); margin-top:2px; font-weight:500; }
+  .header-meta{ text-align:right; }
+  .doc-label{
+    display:inline-block; font-size:0.72em; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--accent); background:var(--accent-soft); padding:4px 10px; border-radius:999px;
+  }
+  .doc-date{ display:block; font-size:0.8em; color:var(--text-faint); margin-top:6px; }
+
+  /* Tabs */
+  .tabs{
+    display:flex; gap:6px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:12px; padding:5px; margin-bottom:22px; overflow-x:auto;
+  }
+  .tab-btn{
+    display:flex; align-items:center; gap:8px; flex:1 1 auto; white-space:nowrap;
+    border:none; background:transparent; color:var(--text-muted); font-family:inherit;
+    font-size:0.88em; font-weight:600; padding:10px 14px; border-radius:8px; cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab-btn svg{ width:16px; height:16px; flex:none; }
+  .tab-btn:hover{ color:var(--text); }
+  .tab-btn.active{ background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
+  .tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .tab-panel{ animation:fadein .18s ease; }
+  @keyframes fadein{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .tab-panel{ animation:none; } }
+
+  h2.panel-title{ font-size:1.15em; margin-bottom:4px; }
+  p.panel-sub{ color:var(--text-muted); font-size:0.88em; margin:0 0 20px; }
+
+  /* Generic card */
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px; box-shadow:var(--shadow-sm);
+  }
+
+  /* Client tab */
+  .field-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:16px; }
+  .field-grid.cols-2-1{ grid-template-columns: 2fr 1fr; }
+  @media (max-width:640px){ .field-grid.cols-2-1{ grid-template-columns:1fr; } }
+  .input-group{ display:flex; flex-direction:column; gap:6px; }
+  .input-group label{ font-size:0.78em; font-weight:600; color:var(--text-muted); }
+  .input-group input, .input-group select{
+    width:100%; padding:10px 12px; font-size:0.95em; font-family:inherit;
+    border:1px solid var(--border-strong); border-radius:8px; background:var(--surface); color:var(--text);
+  }
+  .input-group input:focus, .input-group select:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .input-group input[readonly]{ background:var(--surface-2); color:var(--text-muted); cursor:not-allowed; }
+  .hint{ font-size:0.78em; color:var(--text-faint); margin-top:2px; }
+
+  /* Modules tab */
+  .grid-container{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px; }
+  .modules-list{ display:flex; flex-direction:column; gap:0; }
+  .module-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:12px 4px; border-bottom:1px dashed var(--border); cursor:pointer;
+  }
+  .module-item:last-child{ border-bottom:none; }
+  .module-item .left{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .module-item input[type="checkbox"]{ width:17px; height:17px; accent-color:var(--accent); flex:none; cursor:pointer; }
+  .module-name{ font-size:0.9em; font-weight:600; color:var(--text); }
+  .module-item .price-value{ font-size:0.88em; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+  .module-item.selected .price-value{ color:var(--accent-2); }
+  .module-item.selected .module-name{ color:var(--accent); }
+
+  .card h3{ font-size:1em; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .radio-item{
+    display:flex; flex-direction:column; gap:2px; padding:10px 12px; margin-bottom:8px;
+    border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .radio-item:last-child{ margin-bottom:0; }
+  .radio-item .row1{ display:flex; align-items:center; gap:9px; font-size:0.88em; font-weight:600; color:var(--text); }
+  .radio-item input[type="radio"]{ accent-color:var(--accent); width:16px; height:16px; flex:none; }
+  .radio-desc{ color:var(--text-faint); font-size:0.78em; margin-left:25px; }
+  .radio-price{ color:var(--accent-2); font-weight:600; font-size:0.82em; margin-left:25px; }
+  .radio-item.selected{ border-color:var(--accent); background:var(--accent-soft); }
+
+  /* Equipment tab */
+  .equip-list{ display:flex; flex-direction:column; gap:14px; }
+  .equip-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px;
+    box-shadow:var(--shadow-sm); border-left:3px solid var(--accent-2);
+  }
+  .equip-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .equip-head h3{ font-size:1.02em; }
+  .equip-desc{ color:var(--text-muted); font-size:0.82em; margin:3px 0 0; }
+  .equip-subtotal-wrap{ text-align:right; }
+  .equip-subtotal-label{ display:block; font-size:0.7em; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-faint); }
+  .equip-subtotal{ display:block; font-size:1.15em; font-weight:600; color:var(--accent-2); }
+  .equip-controls{ display:flex; gap:24px; flex-wrap:wrap; align-items:flex-end; padding-top:12px; border-top:1px dashed var(--border); }
+  .qty-field label, .price-field label{ display:block; font-size:0.75em; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
+  .qty-stepper{ display:flex; align-items:stretch; border:1px solid var(--border-strong); border-radius:8px; overflow:hidden; width:130px; }
+  .qty-btn{
+    background:var(--surface-2); border:none; color:var(--text); font-size:1.05em; font-weight:600; width:34px;
+    cursor:pointer; transition:background .15s;
+  }
+  .qty-btn:hover{ background:var(--accent-soft); color:var(--accent); }
+  .equip-qty{
+    width:100%; text-align:center; border:none; border-left:1px solid var(--border-strong); border-right:1px solid var(--border-strong);
+    padding:8px 4px; font-size:0.95em; background:var(--surface); color:var(--text);
+  }
+  .equip-qty:focus{ outline:none; background:var(--accent-soft); }
+  .price-field{ display:flex; flex-direction:column; }
+  .price-field .price-input-wrap{ display:flex; align-items:center; border:1px solid var(--border-strong); border-radius:8px; overflow:hidden; width:140px; }
+  .price-input-wrap span{ padding:8px 6px 8px 10px; color:var(--text-faint); font-size:0.85em; }
+  .equip-price{ border:none; padding:8px 10px 8px 2px; font-size:0.95em; width:100%; background:var(--surface); color:var(--text); }
+  .equip-price:focus{ outline:none; background:var(--accent-soft); }
+
+  /* Resumo tab */
+  .summary-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:16px; margin-bottom:22px; }
+  .totals-card{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-sm); }
+  @media (max-width:560px){ .totals-card{ grid-template-columns:1fr; } }
+  .total-box{ padding:22px 22px; background:var(--surface); }
+  .total-box + .total-box{ border-left:1px solid var(--border); }
+  @media (max-width:560px){ .total-box + .total-box{ border-left:none; border-top:1px solid var(--border); } }
+  .total-box h4{ margin:0 0 8px; font-size:0.78em; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-faint); }
+  .total-price{ font-size:1.9em; font-weight:600; color:var(--accent); }
+  .total-price.secondary{ color:var(--text); font-size:1.5em; }
+  .installments-text{ color:var(--success); font-size:0.85em; font-weight:600; margin-top:6px; }
+
+  .btn-primary{
+    background:var(--accent); color:var(--accent-ink); border:none; padding:14px 22px; border-radius:9px;
+    cursor:pointer; font-weight:700; font-size:0.98em; width:100%; transition:filter .15s, transform .1s;
+    font-family:inherit;
+  }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-primary:active{ transform:scale(0.99); }
+
+  /* Sticky summary bar */
+  .summary-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap;
+    background:var(--surface); border-top:1px solid var(--border); box-shadow:var(--shadow-lg);
+    padding:12px 20px; backdrop-filter:blur(6px);
+  }
+  .summary-bar-inner{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; max-width:1080px; width:100%; justify-content:center; }
+  .summary-item{ display:flex; flex-direction:column; align-items:flex-start; }
+  .summary-label{ font-size:0.68em; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-faint); }
+  .summary-value{ font-size:1.05em; font-weight:600; color:var(--text); }
+  .summary-item.mensal .summary-value{ color:var(--accent); }
+  .btn-pdf-bar{
+    background:var(--accent); color:var(--accent-ink); border:none; padding:11px 20px; border-radius:8px;
+    cursor:pointer; font-weight:700; font-size:0.88em; font-family:inherit; white-space:nowrap;
+    transition:filter .15s;
+  }
+  .btn-pdf-bar:hover{ filter:brightness(1.08); }
+
+  @media (max-width:640px){
+    .shell{ padding:20px 14px 150px; }
+    .summary-bar-inner{ justify-content:space-between; }
+    .summary-item{ display:none; }
+    .summary-item.mensal{ display:flex; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="app-header">
+    <div>
+      <div class="brand-mark">PDV<span class="brand-mark-accent">Legal</span></div>
+      <span class="brand-sub">Silwa Tecnologia — Tabela de Preços e Contrato</span>
+    </div>
+    <div class="header-meta">
+      <span class="doc-label">Proposta comercial</span>
+      <span class="doc-date" id="doc-date"></span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Seções da proposta">
+    <button class="tab-btn active" data-tab="cliente" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="5"/></svg>
+      Dados do Cliente
+    </button>
+    <button class="tab-btn" data-tab="modulos" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Módulos &amp; Planos
+    </button>
+    <button class="tab-btn" data-tab="equipamentos" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Equipamentos
+    </button>
+    <button class="tab-btn" data-tab="resumo" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17H6z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+      Resumo &amp; Orçamento
+    </button>
+  </nav>
+
+  <main>
+
+    <!-- TAB: Dados do Cliente -->
+    <section class="tab-panel active" id="panel-cliente" role="tabpanel">
+      <h2 class="panel-title">Dados da Empresa (Contratante)</h2>
+      <p class="panel-sub">Essas informações vão para a capa do orçamento e para o contrato em PDF.</p>
+      <div class="card">
+        <div class="field-grid cols-2-1" style="margin-bottom:16px;">
+          <div class="input-group">
+            <label for="input-empresa">Razão Social / Nome da Empresa</label>
+            <input type="text" id="input-empresa" placeholder="Ex: Supermercado Exemplo LTDA">
+          </div>
+          <div class="input-group">
+            <label for="input-cnpj">CNPJ</label>
+            <input type="text" id="input-cnpj" placeholder="00.000.000/0000-00">
+          </div>
+        </div>
+        <div class="field-grid cols-2-1">
+          <div class="input-group">
+            <label for="select-adquirente">Adquirente de Pagamento</label>
+            <select id="select-adquirente">
+              <option value="">Selecione a adquirente utilizada pelo cliente</option>
+              <option value="Cielo">Cielo</option>
+              <option value="Rede">Rede</option>
+              <option value="GetNet">GetNet</option>
+              <option value="Stone">Stone</option>
+              <option value="PagSeguro">PagSeguro</option>
+              <option value="SumUp">SumUp</option>
+              <option value="Mercado Pago">Mercado Pago</option>
+              <option value="Ton">Ton</option>
+              <option value="InfinitePay">InfinitePay</option>
+              <option value="Adiq">Adiq</option>
+              <option value="outra">Outra</option>
+            </select>
+            <span class="hint">Usada para validar a compatibilidade do TEF integrado.</span>
+          </div>
+          <div class="input-group" id="group-adquirente-outra" hidden>
+            <label for="input-adquirente-outra">Qual adquirente?</label>
+            <input type="text" id="input-adquirente-outra" placeholder="Nome da adquirente">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Módulos & Planos -->
+    <section class="tab-panel" id="panel-modulos" role="tabpanel" hidden>
+      <h2 class="panel-title">Módulos, Combos e Planos</h2>
+      <p class="panel-sub">Módulo Cloud/Retaguarda é obrigatório. Selecione os itens desta proposta.</p>
+
+      <div class="grid-container">
+        <div class="card">
+          <h3>Módulos Avulsos</h3>
+          <div class="modules-list">
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Cloud" data-price="79.90"><span class="module-name">Retaguarda</span></div>
+              <span class="price-value">R$ 79,90</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Módulo Estoque" data-price="85.00"><span class="module-name">Módulo Estoque</span></div>
+              <span class="price-value">R$ 85,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Módulo Fiscal" data-price="85.00"><span class="module-name">Módulo Fiscal</span></div>
+              <span class="price-value">R$ 85,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Módulo Financeiro" data-price="85.00"><span class="module-name">Módulo Financeiro</span></div>
+              <span class="price-value">R$ 85,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Módulo de Serviço" data-price="85.00"><span class="module-name">Módulo de Serviço</span></div>
+              <span class="price-value">R$ 85,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Integração iFood" data-price="50.00"><span class="module-name">Integração iFood</span></div>
+              <span class="price-value">R$ 50,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Módulo Conta Assinada" data-price="00.00"><span class="module-name">Módulo Conta Assinada</span></div>
+              <span class="price-value">R$ 0,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="PDV Legal Fast" data-price="289.80"><span class="module-name">PDV Legal Fast</span></div>
+              <span class="price-value">R$ 289,80</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Mata Ficha" data-price="50.00"><span class="module-name">Mata Ficha</span></div>
+              <span class="price-value">R$ 50,00</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Validação de CPF" data-price="69.90"><span class="module-name">Validação de CPF</span></div>
+              <span class="price-value">R$ 69,90</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="PDV Legal Full" data-price="999.99"><span class="module-name">PDV Legal Full</span></div>
+              <span class="price-value">R$ 999,99</span>
+            </label>
+            <label class="module-item">
+              <div class="left"><input type="checkbox" class="calc-item" data-name="Certificado Digital" data-price="259.90"><span class="module-name">Certificado Digital</span></div>
+              <span class="price-value">R$ 259,90</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Planos Combos</h3>
+          <label class="radio-item selected">
+            <div class="row1"><input type="radio" name="combos" class="calc-item" data-name="Combo - Nenhum" data-price="0" checked> Nenhum</div>
+          </label>
+          <label class="radio-item">
+            <div class="row1"><input type="radio" name="combos" class="calc-item" data-name="Plano Básico com Fiscal" data-price="235.00"> PLANO BÁSICO com FISCAL</div>
+            <span class="radio-desc">Gestor em nuvem + emissor de notas + 2 apps + TEF Integrado</span>
+            <span class="radio-price">R$ 235,00</span>
+          </label>
+          <label class="radio-item">
+            <div class="row1"><input type="radio" name="combos" class="calc-item" data-name="Plano Plus Fiscal + Estoque" data-price="318.90"> PLANO PLUS FISCAL + ESTOQUE</div>
+            <span class="radio-desc">Gestor em nuvem + emissor de notas + estoque + 2 apps + TEF Integrado</span>
+            <span class="radio-price">R$ 318,90</span>
+          </label>
+        </div>
+
+        <div class="card">
+          <h3>Quantidade de PDV's (Software)</h3>
+          <label class="radio-item selected"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - Nenhuma" data-price="0" checked> Nenhuma</div></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 1" data-price="69.90"> 1</div><span class="radio-price">R$ 69,90</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 2" data-price="69.90"> 2</div><span class="radio-price">R$ 69,90</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 3" data-price="89.90"> 3</div><span class="radio-price">R$ 89,90</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 4" data-price="89.90"> 4</div><span class="radio-price">R$ 89,90</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 5" data-price="89.90"> 5</div><span class="radio-price">R$ 89,90</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 6" data-price="139.00"> 6</div><span class="radio-price">R$ 139,00</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 7" data-price="139.00"> 7</div><span class="radio-price">R$ 139,00</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 8" data-price="199.00"> 8</div><span class="radio-price">R$ 199,00</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 9" data-price="199.00"> 9</div><span class="radio-price">R$ 199,00</span></label>
+          <label class="radio-item"><div class="row1"><input type="radio" name="comandas" class="calc-item" data-name="PDVs - 10" data-price="199.00"> 10</div><span class="radio-price">R$ 199,00</span></label>
+        </div>
+
+        <div class="card">
+          <h3>Planos Delivery Legal</h3>
+          <label class="radio-item selected"><div class="row1"><input type="radio" name="planos" class="calc-item" data-name="Delivery - Não é necessário" data-price="0" checked> Não é necessário</div></label>
+          <label class="radio-item">
+            <div class="row1"><input type="radio" name="planos" class="calc-item" data-name="Delivery - Plano 1" data-price="199.90"> Plano 1</div>
+            <span class="radio-desc">Até 25k de faturamento</span>
+            <span class="radio-price">R$ 199,90</span>
+          </label>
+          <label class="radio-item">
+            <div class="row1"><input type="radio" name="planos" class="calc-item" data-name="Delivery - Plano 2" data-price="279.90"> Plano 2</div>
+            <span class="radio-desc">Acima de 25k de faturamento</span>
+            <span class="radio-price">R$ 279,90</span>
+          </label>
+        </div>
+
+        <div class="card">
+          <h3>Módulo Fidelidade Legal</h3>
+          <label class="radio-item selected"><div class="row1"><input type="radio" name="fidelidade" class="calc-item" data-name="Fidelidade - Não é necessário" data-price="0" checked> Não é necessário</div></label>
+          <label class="radio-item">
+            <div class="row1"><input type="radio" name="fidelidade" class="calc-item" data-name="Fidelidade Legal" data-price="219.90"> Fidelidade Legal (Padrão)</div>
+            <span class="radio-price">R$ 219,90</span>
+          </label>
+          <label class="radio-item">
+            <div class="row1"><input type="radio" name="fidelidade" class="calc-item" data-name="Fidelidade Legal Plus" data-price="375.00"> Fidelidade Legal PLUS</div>
+            <span class="radio-price">R$ 375,00</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Equipamentos -->
+    <section class="tab-panel" id="panel-equipamentos" role="tabpanel" hidden>
+      <h2 class="panel-title">Equipamentos</h2>
+      <p class="panel-sub">Quantidade e valor unitário são editáveis. O subtotal entra na mensalidade recorrente.</p>
+
+      <div class="equip-list">
+        <div class="equip-card">
+          <div class="equip-head">
+            <div>
+              <h3>Totem PDV</h3>
+              <p class="equip-desc">Autoatendimento para pedidos no salão</p>
+            </div>
+            <div class="equip-subtotal-wrap">
+              <span class="equip-subtotal-label">Subtotal / mês</span>
+              <span class="equip-subtotal" id="subtotal-totem">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="equip-controls">
+            <div class="qty-field">
+              <label>Quantidade</label>
+              <div class="qty-stepper">
+                <button type="button" class="qty-btn" data-action="dec" data-id="totem" aria-label="Diminuir quantidade">−</button>
+                <input type="number" class="equip-qty" data-id="totem" min="0" step="1" value="0" inputmode="numeric">
+                <button type="button" class="qty-btn" data-action="inc" data-id="totem" aria-label="Aumentar quantidade">+</button>
+              </div>
+            </div>
+            <div class="price-field">
+              <label for="price-totem">Valor unitário</label>
+              <div class="price-input-wrap">
+                <span>R$</span>
+                <input type="number" id="price-totem" class="equip-price" data-id="totem" min="0" step="0.01" value="100.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="equip-card">
+          <div class="equip-head">
+            <div>
+              <h3>KDS</h3>
+              <p class="equip-desc">Monitor de cozinha para expedição de pedidos (Kitchen Display System)</p>
+            </div>
+            <div class="equip-subtotal-wrap">
+              <span class="equip-subtotal-label">Subtotal / mês</span>
+              <span class="equip-subtotal" id="subtotal-kds">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="equip-controls">
+            <div class="qty-field">
+              <label>Quantidade</label>
+              <div class="qty-stepper">
+                <button type="button" class="qty-btn" data-action="dec" data-id="kds" aria-label="Diminuir quantidade">−</button>
+                <input type="number" class="equip-qty" data-id="kds" min="0" step="1" value="0" inputmode="numeric">
+                <button type="button" class="qty-btn" data-action="inc" data-id="kds" aria-label="Aumentar quantidade">+</button>
+              </div>
+            </div>
+            <div class="price-field">
+              <label for="price-kds">Valor unitário</label>
+              <div class="price-input-wrap">
+                <span>R$</span>
+                <input type="number" id="price-kds" class="equip-price" data-id="kds" min="0" step="0.01" value="50.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="equip-card">
+          <div class="equip-head">
+            <div>
+              <h3>PDV</h3>
+              <p class="equip-desc">Terminal de venda (maquininha / tablet de operação)</p>
+            </div>
+            <div class="equip-subtotal-wrap">
+              <span class="equip-subtotal-label">Subtotal / mês</span>
+              <span class="equip-subtotal" id="subtotal-pdv">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="equip-controls">
+            <div class="qty-field">
+              <label>Quantidade</label>
+              <div class="qty-stepper">
+                <button type="button" class="qty-btn" data-action="dec" data-id="pdv" aria-label="Diminuir quantidade">−</button>
+                <input type="number" class="equip-qty" data-id="pdv" min="0" step="1" value="0" inputmode="numeric">
+                <button type="button" class="qty-btn" data-action="inc" data-id="pdv" aria-label="Aumentar quantidade">+</button>
+              </div>
+            </div>
+            <div class="price-field">
+              <label for="price-pdv">Valor unitário</label>
+              <div class="price-input-wrap">
+                <span>R$</span>
+                <input type="number" id="price-pdv" class="equip-price" data-id="pdv" min="0" step="0.01" value="30.00">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: Resumo -->
+    <section class="tab-panel" id="panel-resumo" role="tabpanel" hidden>
+      <h2 class="panel-title">Resumo &amp; Orçamento</h2>
+      <p class="panel-sub">Configure a implantação, aplique desconto e gere o PDF final.</p>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="field-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+          <div class="input-group">
+            <label>Implantação (Base)</label>
+            <input type="text" value="R$ 1.500,00" readonly>
+          </div>
+          <div class="input-group">
+            <label for="input-desconto">Desconto na implantação (%)</label>
+            <input type="number" id="input-desconto" placeholder="Ex: 10" min="0" max="100" step="1" value="0">
+          </div>
+          <div class="input-group">
+            <label for="select-parcelas">Parcelamento da implantação</label>
+            <select id="select-parcelas">
+              <option value="1">À vista</option>
+              <option value="2">2x sem juros</option>
+              <option value="3">3x sem juros</option>
+              <option value="4">4x sem juros</option>
+              <option value="5">5x sem juros</option>
+              <option value="6">6x sem juros</option>
+              <option value="7">7x sem juros</option>
+              <option value="8">8x sem juros</option>
+              <option value="9">9x sem juros</option>
+              <option value="10">10x sem juros</option>
+              <option value="11">11x sem juros</option>
+              <option value="12">12x sem juros</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="totals-card">
+        <div class="total-box">
+          <h4>Total Mensal (Recorrente)</h4>
+          <div class="total-price" id="valor-mensal">R$ 0,00</div>
+        </div>
+        <div class="total-box">
+          <h4>Total Implantação</h4>
+          <div class="total-price secondary" id="valor-implantacao-display">R$ 1.500,00</div>
+          <div class="installments-text" id="texto-parcelas"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn-primary" id="btn-gerar-pdf">Gerar Orçamento e Contrato em PDF</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="summary-bar">
+  <div class="summary-bar-inner">
+    <div class="summary-item mensal">
+      <span class="summary-label">Mensal</span>
+      <span class="summary-value" id="bar-mensal">R$ 0,00</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Implantação</span>
+      <span class="summary-value" id="bar-implantacao">R$ 1.500,00</span>
+    </div>
+    <button class="btn-pdf-bar" id="btn-gerar-pdf-bar">Gerar PDF</button>
+  </div>
+</footer>
+
+<script>
+  // --- DATA (referência atual) ---
+  document.getElementById('doc-date').textContent = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+  // --- TABS ---
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabBtns.forEach(btn => btn.addEventListener('click', () => {
+    tabBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+    panels.forEach(p => { p.hidden = true; });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    const panel = document.getElementById('panel-' + btn.dataset.tab);
+    panel.hidden = false;
+  }));
+
+  // --- ADQUIRENTE ---
+  const selectAdquirente = document.getElementById('select-adquirente');
+  const groupAdquirenteOutra = document.getElementById('group-adquirente-outra');
+  const inputAdquirenteOutra = document.getElementById('input-adquirente-outra');
+  selectAdquirente.addEventListener('change', () => {
+    groupAdquirenteOutra.hidden = selectAdquirente.value !== 'outra';
+  });
+  function getAdquirenteTexto() {
+    const v = selectAdquirente.value;
+    if (!v) return 'Não informado';
+    if (v === 'outra') return inputAdquirenteOutra.value.trim() || 'Outra (não especificada)';
+    return v;
+  }
+
+  // --- CÁLCULO ---
+  const inputs = document.querySelectorAll('.calc-item');
+  const inputDesconto = document.getElementById('input-desconto');
+  const selectParcelas = document.getElementById('select-parcelas');
+
+  const displayMensal = document.getElementById('valor-mensal');
+  const displayImplantacao = document.getElementById('valor-implantacao-display');
+  const displayTextoParcelas = document.getElementById('texto-parcelas');
+  const barMensal = document.getElementById('bar-mensal');
+  const barImplantacao = document.getElementById('bar-implantacao');
+
+  const VALOR_IMPLANTACAO_BASE = 1500.00;
+  const EQUIP_IDS = ['totem', 'kds', 'pdv'];
+
+  let totalMensalGlobal = 0;
+  let totalImplantacaoGlobal = 1500.00;
+  let qtdParcelasGlobal = 1;
+  let valorParcelaGlobal = 0;
+  let descontoAplicadoGlobal = 0;
+
+  function formatBRL(v) {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function getEquipData() {
+    return EQUIP_IDS.map(id => {
+      const qtyEl = document.querySelector('.equip-qty[data-id="' + id + '"]');
+      const priceEl = document.querySelector('.equip-price[data-id="' + id + '"]');
+      const nameEl = qtyEl.closest('.equip-card').querySelector('h3');
+      const qty = Math.max(0, parseInt(qtyEl.value) || 0);
+      const price = Math.max(0, parseFloat(priceEl.value) || 0);
+      const subtotal = qty * price;
+      return { id: id, name: nameEl.textContent.trim(), qty: qty, price: price, subtotal: subtotal };
+    });
+  }
+
+  function updateSelectedStates() {
+    document.querySelectorAll('.module-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      item.classList.toggle('selected', cb.checked);
+    });
+    document.querySelectorAll('.radio-item').forEach(item => {
+      const rb = item.querySelector('input[type="radio"]');
+      item.classList.toggle('selected', rb.checked);
+    });
+  }
+
+  function calcularTotal() {
+    let totalMensal = 0;
+    inputs.forEach(input => {
+      if (input.checked) totalMensal += parseFloat(input.getAttribute('data-price'));
+    });
+
+    const equipData = getEquipData();
+    equipData.forEach(item => {
+      const subtotalEl = document.getElementById('subtotal-' + item.id);
+      subtotalEl.textContent = formatBRL(item.subtotal);
+      totalMensal += item.subtotal;
+    });
+
+    const desconto = parseFloat(inputDesconto.value) || 0;
+    const descontoValido = desconto >= 0 && desconto <= 100 ? desconto : 0;
+    const valorImplantacaoCalculado = VALOR_IMPLANTACAO_BASE * (1 - (descontoValido / 100));
+    const qtdParcelas = parseInt(selectParcelas.value) || 1;
+    const valorParcela = valorImplantacaoCalculado / qtdParcelas;
+
+    totalMensalGlobal = totalMensal;
+    totalImplantacaoGlobal = valorImplantacaoCalculado;
+    qtdParcelasGlobal = qtdParcelas;
+    valorParcelaGlobal = valorParcela;
+    descontoAplicadoGlobal = descontoValido;
+
+    displayMensal.textContent = formatBRL(totalMensal);
+    displayImplantacao.textContent = formatBRL(valorImplantacaoCalculado);
+    barMensal.textContent = formatBRL(totalMensal);
+    barImplantacao.textContent = formatBRL(valorImplantacaoCalculado);
+
+    if (valorImplantacaoCalculado > 0 && qtdParcelas > 1) {
+      displayTextoParcelas.textContent = 'Ou em ' + qtdParcelas + 'x de ' + formatBRL(valorParcela);
+    } else if (valorImplantacaoCalculado > 0 && qtdParcelas === 1) {
+      displayTextoParcelas.textContent = 'Pagamento à vista';
+    } else {
+      displayTextoParcelas.textContent = 'Isento';
+    }
+
+    updateSelectedStates();
+  }
+
+  inputs.forEach(input => input.addEventListener('change', calcularTotal));
+  inputDesconto.addEventListener('input', calcularTotal);
+  selectParcelas.addEventListener('change', calcularTotal);
+
+  document.querySelectorAll('.equip-qty, .equip-price').forEach(el => {
+    el.addEventListener('input', calcularTotal);
+  });
+  document.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const qtyEl = document.querySelector('.equip-qty[data-id="' + id + '"]');
+      let val = parseInt(qtyEl.value) || 0;
+      val = btn.getAttribute('data-action') === 'inc' ? val + 1 : Math.max(0, val - 1);
+      qtyEl.value = val;
+      calcularTotal();
+    });
+  });
+
+  calcularTotal();
+
+  // --- PDF ---
+  function gerarPDF() {
+    try {
+      // 1. Instanciação mais robusta baseada no ambiente global
+      const jsPDFContext = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+      if (!jsPDFContext) {
+        alert('A biblioteca jsPDF não carregou. Verifique a sua internet e recarregue a página.');
+        return;
+      }
+      
+      const doc = new jsPDFContext();
+      
+      if (typeof doc.autoTable !== 'function') {
+        alert('A biblioteca jsPDF-AutoTable não carregou. Verifique sua conexão e tente de novo.');
+        return;
+      }
+      
+      montarPDF(doc);
+    } catch (err) {
+      console.error('Erro detalhado:', err);
+      alert('Ocorreu um erro no código do PDF: ' + (err.message || err));
+    }
+  }
+
+  function montarPDF(doc) {
+    // ===== PÁGINA 1: ORÇAMENTO =====
+    doc.setFontSize(22);
+    doc.setTextColor(41, 84, 229);
+    doc.text('SILWA TECNOLOGIA', 14, 20);
+
+    doc.setFontSize(14);
+    doc.setTextColor(51, 51, 51);
+    doc.text('Orçamento de Serviços, Módulos e Equipamentos', 14, 30);
+
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    const nomeEmpresa = document.getElementById('input-empresa').value || 'Não informado';
+    const cnpjEmpresa = document.getElementById('input-cnpj').value || 'Não informado';
+    const adquirenteTexto = getAdquirenteTexto();
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Data: ' + dataAtual, 14, 38);
+    doc.text('Empresa: ' + nomeEmpresa + ' | CNPJ: ' + cnpjEmpresa, 14, 43);
+    doc.text('Adquirente de Pagamento: ' + adquirenteTexto, 14, 48);
+
+    const tableData = [];
+    inputs.forEach(input => {
+      if (input.checked) {
+        const price = parseFloat(input.getAttribute('data-price'));
+        if (price > 0 || input.getAttribute('data-name').includes('Cloud')) {
+          const name = input.getAttribute('data-name');
+          tableData.push([name, '1', formatBRL(price), formatBRL(price)]);
+        }
+      }
+    });
+    getEquipData().forEach(item => {
+      if (item.qty > 0) {
+        tableData.push([item.name, String(item.qty), formatBRL(item.price), formatBRL(item.subtotal)]);
+      }
+    });
+
+    doc.autoTable({
+      startY: 54,
+      head: [['Módulos, Planos e Equipamentos', 'Qtd', 'Valor Unit.', 'Valor Mensal']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [41, 84, 229] },
+      styles: { fontSize: 10 }
+    });
+
+    // 2. Protegendo a consulta da posição final (evita erro caso a tabela pule ou fique vazia)
+    const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY : 54;
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(41, 84, 229);
+    doc.text('Resumo Financeiro', 14, finalY + 15);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    const totalMensalFormatado = formatBRL(totalMensalGlobal);
+    doc.text('Total Mensal (Recorrente): ' + totalMensalFormatado, 14, finalY + 25);
+
+    let textoImplantacao = 'Total de Implantação (Valor Fixo): ';
+    if (descontoAplicadoGlobal > 0) {
+      textoImplantacao = 'Total de Implantação (Com ' + descontoAplicadoGlobal + '% de Desconto): ';
+    }
+
+    const totalImplFormatado = formatBRL(totalImplantacaoGlobal);
+    doc.text(textoImplantacao + totalImplFormatado, 14, finalY + 33);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(80, 80, 80);
+
+    const condicaoParcelasTexto = qtdParcelasGlobal > 1 ? qtdParcelasGlobal + 'x sem juros' : 'À vista';
+
+    if (totalImplantacaoGlobal > 0) {
+      if (qtdParcelasGlobal > 1) {
+        doc.text('Condição de pagamento da implantação: ' + qtdParcelasGlobal + 'x de ' + formatBRL(valorParcelaGlobal) + ' sem juros.', 14, finalY + 40);
+      } else {
+        doc.text('Condição de pagamento da implantação: À vista.', 14, finalY + 40);
+      }
+    } else {
+      doc.text('Condição de pagamento da implantação: Isento.', 14, finalY + 40);
+    }
+
+    // ===== PÁGINA 2+: CONTRATO =====
+    doc.addPage();
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(41, 84, 229);
+    doc.text('TERMO DE ADESÃO PDV LEGAL / SILWA DIGITAL', 14, 20);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Contratante: ' + nomeEmpresa, 14, 30);
+    doc.text('CNPJ: ' + cnpjEmpresa, 14, 37);
+    doc.text('Adquirente de Pagamento informada: ' + adquirenteTexto, 14, 44);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    const termText = 'Declaro, para os devidos fins, que são corretos os dados cadastrais e informações por mim prestadas neste instrumento. Declaro estar ciente que a aceitação deste instrumento representa expressa concordância aos termos e condições do "AVISO LEGAL", que juntamente com esse TERMO DE ADESÃO formam um só instrumento de direito, tendo lido e entendido claramente os termos e condições ajustadas para esta contratação.\n\n' +
+      '1. Sobre a adesão - A adesão do software PDV Legal é online, feito diretamente no sistema, com preenchimento de nome, e-mail e telefone, além de uma senha de acesso, que serão os dados necessários para abertura de uma degustação, chamada "Trial", que é gratuita por 2 dias, sem obrigatoriedade de inserção de outras informações cadastrais da empresa do cliente.\n\n' +
+      '2. Sobre os planos - O valor do serviço é definido de acordo com o plano escolhido. Sendo cobrados valores avulsos por serviço prestado disponíveis junto com o consultor comercial.\n\n' +
+      '2.1. O valor total da MENSALIDADE contratada (Cessão de uso, módulos e equipamentos) é de ' + totalMensalFormatado + '. Para a IMPLANTAÇÃO do sistema será cobrado o valor de ' + totalImplFormatado + ', na condição de pagamento: ' + condicaoParcelasTexto + '. Podendo ser negociado com o time comercial, desconto para pagamento à vista ou parcelamento.\n\n' +
+      '2.2. Na necessidade de upgrade de plano, a liberação dos produtos será feita em até 24h, com a liquidação do pagamento. Na necessidade de Downgrade de plano a alteração do valor do contrato só será feita na próxima fatura.\n\n' +
+      '3. Contratação – O PDV LEGAL É UMA FERRAMENTA PRÉ PAGA, ou seja, o cliente faz a aquisição da cessão de uso dos serviços de tecnologia para o próximo período de utilização, com base nos valores e planos contratados. A efetivação da contratação do plano é feita diretamente no sistema, aplicando interesse por parte do cliente na utilização da ferramenta, em perfeita concordância aos termos e condições do "AVISO LEGAL". Com o preenchimento da Razão Social ou Nome completo, CNPJ ou CPF, Endereço completo, nome do representante legal e contatos administrativos, a ferramenta e os serviços estarão disponíveis para utilização para o período contratado, até o vencimento de 30(trinta) dias, no caso de contratação de planos mensais.\n\n' +
+      '3.1. Ao efetivar a contratação, o PDV Legal estará automaticamente autorizado a emitir faturas referente ao uso do software. A ferramenta é pré-paga, necessitando pagamento para a utilização completa nos 30 dias seguintes.\n\n' +
+      '3.2. Em caso de cancelamento da prestação de serviços, durante a vigência do período contratado, a ferramenta continuará disponível até a data final do contrato.\n\n' +
+      '4. Dos meios de pagamento - Ultrapassado o prazo de 2 dias gratuitos, o cliente deve optar pelos planos disponíveis para contratação para utilização do sistema. O pagamento pode ser feito via boleto bancário ou cartão de crédito, de acordo com o pacote e preferência do cliente.\n\n' +
+      '4.1. Caso o cliente faça upgrade ou Downgrade de plano, os valores serão adequados, como citado no tópico 2 deste termo de adesão.\n\n' +
+      '4.2. Notas Fiscais para clientes localizados no Brasil serão emitidas e enviadas ao cliente em até 5 dias após o pagamento, não levando em consideração possíveis problemas com os órgãos governamentais.\n\n' +
+      '4.3. O Contratante declarou utilizar a adquirente de pagamento: ' + adquirenteTexto + ', sendo de sua responsabilidade a compatibilidade com o TEF integrado do sistema e eventuais ajustes de configuração junto à adquirente informada.\n\n' +
+      '5. Suporte - Além da Cessão de uso do PDV Legal, a empresa oferece serviços que já estão incluídos, como suporte técnico online, que ficará disponível em dias úteis, das 9h às 18h, no horário de Brasília e suporte técnico online emergencial das 18h às 22h.\n\n' +
+      '5.1 Implantação - A implantação será realizada por um especialista do PDV Legal. O período contratado de implantação é de dez horas, sendo cinco horas de configuração do retaguarda e mais cinco horas de implantação presencial.\n\n' +
+      '5.2 Implantação - Após a implantação concluída o suporte presencial será cobrado conforme o item 6 do termo de adesão.\n\n' +
+      '6. Visitas técnicas após a implantação serão cobradas uma taxa de deslocamento no valor de R$ 50,00 por hora de visita técnica.\n\n' +
+      '7. Comunicação - Aceitando este TERMO DE ADESÃO, você estará qualificado a receber notícias e informativos via e-mail, não configurando prática de SPAM.\n\n' +
+      '8. O período de vigência do contrato será de 12 meses, contados a partir da data de início da utilização do sistema, sendo renovado automaticamente por igual período caso não haja contestação do cliente.\n\n' +
+      '9. A multa por cancelamento será de 30% do valor total do contrato.\n\n\n' +
+      'PDV Legal | Silwa Digital.';
+
+    const splitText = doc.splitTextToSize(termText, 180);
+    let yPos = 52;
+
+    for (let i = 0; i < splitText.length; i++) {
+      if (yPos > 280) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(splitText[i], 14, yPos);
+      yPos += 5;
+    }
+
+    // 3. Tratamento seguro do Nome do Arquivo para não dar erro no Windows/Mac/Linux
+    let safeName = nomeEmpresa || 'Silwa';
+    safeName = safeName.replace(/[^a-zA-Z0-9]/g, '_'); 
+    doc.save('Orcamento_Contrato_' + safeName + '.pdf');
+  }
+
+  document.getElementById('btn-gerar-pdf').addEventListener('click', gerarPDF);
+  document.getElementById('btn-gerar-pdf-bar').addEventListener('click', gerarPDF);
+</script>
+</body>
+</html>
